@@ -23,14 +23,14 @@ For interactive experiments, `console` and `gateway` scripts are included in the
 
 The examples are devided into three categories
 
-* Contract
+* Contract  
   Scripts that deal with IB::Contracts.  
 	Fetch Contract-Details, associated Options, Option-Chains, Market Price, Scanner and historical Data
-* Order
+* Order  
   Scripts that demonstrate different trading methods.  
 	Limit-Order, Bracket-, Combo-,  and Butterfly-Orders  
 	Preview (what if), modify and cancel orders
-* Account
+* Account  
   Gather Information about the account itself  
   List Balances and portfolio-positions
 
