@@ -5,11 +5,11 @@ EXAMPLES_DIR=$BASEDIR/ib-examples
 git_archives=(ib-api ib-symbols ib-extensions)
 
 clone_git(){ 
-	if [ ` ls | grep $1 | wc -l`  -eq 0 ] ; then
-		git clone https://github.com/ib-ruby/$1 
-  else
-		echo "skipping  cloning $1, already present"
-	fi
+if [ ` ls | grep $1 | wc -l`  -eq 0 ] ; then
+	git clone https://github.com/ib-ruby/$1 
+else
+	echo "skipping  cloning $1, already present"
+fi
 }
 
 
