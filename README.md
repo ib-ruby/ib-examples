@@ -19,10 +19,20 @@ enjoy
 For interactive experiments, `console` and `gateway` scripts are included in the bin-directory
 
 
-## IB-Api-Scripts
+## Examples
 
-The examples in the `api`-directory just collect data from the _TWS_. They can be safely run outside 
-a demo account. 
+The examples are devided into four categories
+
+* Contract
+  Scripts that deal with IB::Contracts.  
+	Fetch Contract-Details, associated Options, Option-Chains, Market Price, Scanner and historical Data
+* Order
+  Scripts that demonstrate different trading methods.  
+	Limit-Order, Bracket-, Combo-,  and Butterfly-Orders  
+	Preview (what if), modify and cancel orders
+* Account
+  Gather Information about the account itself  
+  List Balances and portfolio-positions
 
 
-(to be continued)
+
