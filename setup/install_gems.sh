@@ -24,6 +24,7 @@ make_gemfile(){
  gem \"ib-api\" , path: \"${BASEDIR}/ib-api/\"
  gem \"ib-symbols\", path: \"${BASEDIR}/ib-symbols/\"
  gem \"ib-extensions\", path: \"${BASEDIR}/ib-extensions/\"
+ gem \"getopt\"
  gem \"pastel\"
  gem \"dry-core\"
  gem \"rspec\"

@@ -5,23 +5,15 @@
 
 require 'bundler/setup'
 require 'ib-api'
-require 'yaml'
+require_relative 'config'
 
-
-# read items from console.yml
-read_yml = -> (key) do
-		YAML::load_file( File.expand_path('../config.yml',__FILE__))[key]
-end
-
-client  =  read_yml[ :client_id ]
-port    =  read_yml[ read_yml[ :product ] ]
 
 
 # Only for Advisors: you need to provide account id such as U666777
 account = ARGV[0] || ''
 accounts = []
 
-ib = IB::Connection.new client_id: client , port: port do | gw |  # :port => 7497 # TWS
+ib = IB::Connection.new **Init.params do | gw |
 # Connect to IB TWS and subscribe to events
 
 	# Redirect TWS alerts/errors to STDERR to keep output file clean
