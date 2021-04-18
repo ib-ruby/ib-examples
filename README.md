@@ -21,7 +21,7 @@ For interactive experiments, `console` and `gateway` scripts are included in the
 
 ## Examples
 
-The examples are devided into four categories
+The examples are devided into three categories
 
 * Contract
   Scripts that deal with IB::Contracts.  
