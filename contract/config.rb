@@ -9,6 +9,6 @@ module Init
       YAML::load_file( File.expand_path('../config.yml',__FILE__))[key]
     end
 
-    { client_id:  read_yml[ :client_id ] ,   port:  read_yml[ read_yml[ :product ] ] }
+    { client_id:  read_yml[ :client_id ] ,   port: read_yml[ read_yml[ :product ] ] }
   end
 end
