@@ -1,0 +1,48 @@
+#!/usr/bin/env ruby
+
+# This script downloads historic data for specific symbols from IB and stores them as csv file
+
+require 'bundler/setup'
+require 'ib/symbols'
+require 'ib/eod'
+require_relative 'config'
+require 'csv' 
+
+# We reopen `IB::Contract` and add `to_csv`
+module IB
+  class Contract
+    # creates (or overwrites) the specified file (or symbol.csv) and saves bar-data
+    def to_csv file:nil
+      file ||=  "#{symbol}.csv"
+      if bars.present
+        headers = bars.first.invariant_attributes.keys
+        CSV.open( file, 'w' ) {|f| f << headers ; bars.each {|y| f << y.invariant_attributes.values } }
+      end
+    end
+  end
+end
+
+
+# Definition of what we want data for
+# Predefined Symbol-definitions -->  Symbols::Futures.all, Symbols::Stock.all, etc
+contracts = [ IB::Symbols::Futures.mini_dax,
+              IB::Stock.new( symbol: 'GE'),
+              IB::Symbols::Forex.eurusd ]
+
+
+# Connect to the TWS
+IB::Connection.new( **Init.params ) { |gw| gw.subscribe( :Alert ) { |msg| puts msg.to_human } }
+
+# Finally request historic data and write them to csv-files
+contracts.each do |c|
+  c.eod( duration: '200 D' )
+	c.to_csv
+end
+
+###
+# output in csv-files:
+# time,open,high,low,close,volume,wap,trades                ##  <--- IB::Bar.invariant_atttributes.values
+# 2020-08-06,26.55,27.97,25.9,26.76,162938,27.015,52626     ##  <--- IB::Bar.invariant_atttributes.keys(.to_s)
+# 2020-08-07,26.4,26.88,25.66,26.21,108468,26.096,44409
+#  ...
+

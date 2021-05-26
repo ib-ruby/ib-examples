@@ -7,9 +7,7 @@ require 'ib/symbols'
 require './contract_samples'
 require './config'
 include IB
-# Definition of what we want market data for.  We have to keep track of what ticker id
-# corresponds to what symbol ourselves, because the ticks don't include any other
-# identifying information. The choice of ticker ids is, as far as I can tell, arbitrary.
+# Definition of what we want market data for.  
 contract_definitions =  ContractSamples.public_instance_methods
 
 # get contracts from contract_samples db
@@ -26,13 +24,13 @@ ib = Connection.new  **Init.params  do | gw| # 7496 # TWS
   # will be executed when a message of that type is received, with the received
   # message as its argument. In this case, we just print out the data.
   gw.subscribe(:ContractData, :BondContractData) do |msg| 
-    puts "------------------> Recieved Contract Confirmation <----------------------------"
+    puts "------------------> Received Contract Confirmation <----------------------------"
     puts msg.contract.to_human + "\n"
     puts "Attributes: "
     puts "\t"+ msg.contract.attributes.map{ |k,v|  "#{k} : #{v}" unless v.blank?  }.join("\n\t")
   end
 # Set log level
-	gw.logger.level = Logger::DEBUG #FATAL
+	gw.logger.level = Logger::ERROR #FATAL
 end
 
 ib.wait_for :NextValidOrderId

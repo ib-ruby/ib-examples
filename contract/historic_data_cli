@@ -189,7 +189,7 @@ ib.send_message :RequestHistoricalData,
 # A complication here is that IB does not send any indication when all historic data
 # is done being delivered. So we have to guess - when there is no more new data for
 # some period, we interpret that as "end of data" and exit.
-sleep 2
+sleep 0.2
 loop do
   lastTime = lastMessageTime.pop # blocks until a message is ready on the queue
   sleep 0.1 # .. wait ..

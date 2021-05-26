@@ -6,10 +6,9 @@ require 'bundler/setup'
 require 'ib/symbols'
 require_relative 'config'
 
-contracts = {1 => IB::Symbols::Stocks[:vxx], 
-              9 => IB::Symbols::Forex[:gbpusd] 
-	     }
-
+contracts = [ IB::Symbols::Futures.micro_russell,
+              IB::Symbols::Forex[:gbpusd] ]
+c_hash =  {}
 # Connect to IB TWS.
 ib = IB::Connection.new **Init.params  do | gw | 
 
@@ -19,17 +18,19 @@ ib = IB::Connection.new **Init.params  do | gw |
 	# Subscribe to RealTimeBar incoming events. We have to use message request_id
 	# to figure out what contract it's for.
 	gw.subscribe(IB::Messages::Incoming::RealTimeBar) do |msg|
-		puts contracts[msg.request_id].description + ": #{msg.to_human}"
+    puts c_hash[msg.request_id].symbol + ": #{msg.bar.to_human}"
 	end
 end
-contracts.each_pair do |request_id, contract|
-  ib.send_message IB::Messages::Outgoing::RequestRealTimeBars.new(
-                        :request_id => request_id,
-                        :contract => contract,
-                  #      :bar_size => 5, # Only 5 secs bars supported  (hard coded in messages/outgoing/bar_requests)
-                        :data_type => :trades,	# possible values: :trades, :bid, :ask , :midpoint
-                        :use_rth => false)
-end
+c_hash = contracts.map do  | c |
+  request_id = ib.send_message IB::Messages::Outgoing::RequestRealTimeBars.new(
+                        contract: c,
+                  #     bar_size: 5, # Only 5 secs bars supported  (hard coded in messages/outgoing/bar_requests)
+                        data_type: :trades,	# possible values: :trades, :bid, :ask , :midpoint
+                        use_rth:  false)
+  [ request_id, c ]
+end.to_h
+
+# We use the generated Hash in the subscription part to distinguish between multible assets 
 
 # So we need to interrupt manually when we do not want any more quotes.
 puts "\n******** Press <Enter> to exit... *********\n\n"

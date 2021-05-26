@@ -2,7 +2,7 @@
 # ---------------------------------------------------------------------------------- #
 #                     C O N T R A C T  S A M P L E S                                 #
 #
-# Sample Contracts for ib-ruby with 1:1 comparism to python code         
+# Sample Contracts for ib-ruby with 1:1 comparism to python code
 #
 # based on »ContractSamples.py« (python-implementation of the tws-api)
 # which is protected by the following copyright
@@ -13,7 +13,7 @@
 #
 #
 
-# This script just generates contracts 
+# This script just generates contracts
 # If called from the command line, it prints a list
 
 require 'bundler/setup'
@@ -23,8 +23,6 @@ include IB
 
 module ContractSamples
 
-    """ Usually, the easiest way to define a Stock/CASH contract is through 
-    these four attributes.  """
 
     def rEurGbpFx
       Symbols::Forex[:eurgbp]
@@ -52,7 +50,7 @@ module ContractSamples
 
 
     def rCFD
-    Contract.new symbol: 'IBDE30', sec_type:  :cfd, currency: 'EUR'
+    Contract.new symbol: 'IBDE30', sec_type: :cfd, currency: 'EUR'
     end
 =begin
 #! [cfdcontract]

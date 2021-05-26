@@ -3,6 +3,6 @@
 #  4002/7697 for demo accounts
 ---
 :gateway:  4002
-:tws: 7497
-:client_id: 2000
-:product: :gateway
+:tws: 7496
+:client_id: 2001
+:product: :tws
