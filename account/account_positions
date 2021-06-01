@@ -18,12 +18,11 @@ ib = IB::Connection.new **Init.params do | gw |
   gw.subscribe(:Alert ){ |msg| puts msg.to_human }
   gw.subscribe(:PositionData){ |msg|  q << msg  }
   gw.subscribe(:PositionDataEnd) do 
-		ib.send_message :CancelPositions
+    ib.send_message :CancelPositions
     sleep 0.5
     q.close
   end
-
-	gw.logger.level = Logger::FATAL # DEBUG  -- INFO -- WARN -- ERROR  -- FATAL
+  gw.logger.level = Logger::FATAL # DEBUG  -- INFO -- WARN -- ERROR  -- FATAL
 end
 # request the  AccountSummary
 #
