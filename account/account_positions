@@ -10,30 +10,32 @@ require 'ib-api'
 require_relative 'config'
 
 q =  Queue.new
+out = ->(msg){ print '*'*50; print " #{msg} "; puts '*'*(50 - msg.size)}
 ib = IB::Connection.new **Init.params do | gw |  
 #
 ## Subcribe to forseable events before the connection is completed
 ## Subscribe to TWS alerts/errors
   gw.subscribe(:Alert ){ |msg| puts msg.to_human }
   gw.subscribe(:PositionData){ |msg|  q << msg  }
-  gw.subscribe(:PositionDataEnd) do |msg|
-    puts "received PositionDataEmd:"
-    puts  '*'* 50
-    while p =  q.pop   # do until queue is empty?
-      puts p.to_human
-    end
+  gw.subscribe(:PositionDataEnd) do 
 		ib.send_message :CancelPositions
     sleep 0.5
+    q.close
   end
 
 	gw.logger.level = Logger::FATAL # DEBUG  -- INFO -- WARN -- ERROR  -- FATAL
 end
 # request the  AccountSummary
-  ib.send_message :RequestPositions
+#
+ib.send_message :RequestPositions
 
-# the  output of queue ist processed asynchron
-# No Need to use a Thread at this time
-  sleep 0.5 
+out["start"]
+#
+##wait for data
+while p = q.pop
+  puts p.to_human
+end
 
+out["end"]
 
 
