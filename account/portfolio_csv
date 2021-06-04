@@ -50,9 +50,9 @@ q =  Queue.new
 ib = IB::Connection.new **Init.params do | gw |
 # Connect to IB TWS and subscribe to events
 
-	# Subscribe to TWS alerts/errors and account-related messages
-	# that TWS sends in response to account data request
-	gw.subscribe(:Alert) do |msg|
+  # Subscribe to TWS alerts/errors and account-related messages
+  # that TWS sends in response to account data request
+  gw.subscribe(:Alert) do |msg|
 			## if no account is specified as parameter, but required (Error 321 indicates this) 
 			## fetch data from the last account detected. (The first is most probably the Advisor-Account)
                        if  msg.code == 321
@@ -60,14 +60,14 @@ ib = IB::Connection.new **Init.params do | gw |
                            gw.send_message :RequestAccountData, :subscribe => true, :account_code => account
                        end
   end
-	# Get rid of logging verbosity
-	gw.logger.level =  Logger::FATAL
+  # Get rid of logging verbosity
+  gw.logger.level =  Logger::FATAL
   # add received messages to the queue
   gw.subscribe(:PortfolioValue) { |msg| q.push msg.portfolio_value }
   # close the queue if all data are received
   gw.subscribe(:AccountDownloadEnd){ q.close }
-	## Just in case: put account-names into accounts-array
-	gw.subscribe(:ManagedAccounts){  |msg| accounts = msg.accounts_list.split ',' }
+  # Just in case: put account-names into accounts-array
+  gw.subscribe(:ManagedAccounts){  |msg| accounts = msg.accounts_list.split ',' }
 end
 
 # Request account data
