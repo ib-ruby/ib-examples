@@ -17,29 +17,29 @@ q = Queue.new
 
 ib = IB::Connection.new **Init.params do | gw |  
 
-	# Subscribe to TWS alerts/errors and account-related messages
-	# that TWS sends in response to account data request
-	gw.subscribe(:Alert) do |msg|
-			## if an account is not given. but required, (Error 321 indicates this)
-			## fetch data from the last account detected. (The first is most probably the Advisor-Account)
-											if  msg.code == 321
-												gw.send_message :RequestAccountData, :subscribe => true, :account_code => accounts.last
-											else
-												puts msg.to_human
-											end
-								end
+  # Subscribe to TWS alerts/errors and account-related messages
+  # that TWS sends in response to account data request
+  gw.subscribe(:Alert) do |msg|
+     ## if an account is not given. but required, (Error 321 indicates this)
+     ## fetch data from the last account detected. (The first is most probably the Advisor-Account)
+			if  msg.code == 321
+  			    gw.send_message :RequestAccountData, :subscribe => true, :account_code => accounts.last
+			else
+		            puts msg.to_human
+			end
+  end
 
 	## Collect Account+Portfolio-Values
-gw.subscribe(:AccountValue)   { |msg| puts  msg.to_human }
-gw.subscribe(:PortfolioValue) { |msg| puts msg.to_human }
+  gw.subscribe(:AccountValue)   { |msg| puts  msg.to_human }
+  gw.subscribe(:PortfolioValue) { |msg| puts msg.to_human }
 
 
-	## Just in case: put account-names into accounts-array
-	gw.subscribe(:ManagedAccounts){  |msg| accounts = msg.accounts_list.split ',' }
+  ## Just in case: put account-names into accounts-array
+  gw.subscribe(:ManagedAccounts){  |msg| accounts = msg.accounts_list.split ',' }
   gw.subscribe(:AccountDownloadEnd) { |msg| q.close }
 
-	# Set log level
-	gw.logger.level = Logger::FATAL # DEBUG #FATAL
+  # Set log level
+  gw.logger.level = Logger::FATAL # DEBUG #FATAL
 end
 puts "\nRequesting IB account data"
 
