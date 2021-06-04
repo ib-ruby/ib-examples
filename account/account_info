@@ -13,7 +13,7 @@ account_code = ARGV[0] || ''
 
 # Connect to IB TWS
 accounts =  []
-aq, pq =  Queue.new, Queue.new
+q = Queue.new
 
 ib = IB::Connection.new **Init.params do | gw |  
 
@@ -30,13 +30,13 @@ ib = IB::Connection.new **Init.params do | gw |
 								end
 
 	## Collect Account+Portfolio-Values
-	gw.subscribe(:AccountValue)   { |msg| aq << msg }
-  gw.subscribe(:PortfolioValue) { |msg| pq << msg }
+gw.subscribe(:AccountValue)   { |msg| puts  msg.to_human }
+gw.subscribe(:PortfolioValue) { |msg| puts msg.to_human }
 
 
 	## Just in case: put account-names into accounts-array
 	gw.subscribe(:ManagedAccounts){  |msg| accounts = msg.accounts_list.split ',' }
-	gw.subscribe(:AccountUpdateTime) { |msg| "do nothing" }#puts msg.to_human }
+  gw.subscribe(:AccountDownloadEnd) { |msg| q.close }
 
 	# Set log level
 	gw.logger.level = Logger::FATAL # DEBUG #FATAL
@@ -45,21 +45,9 @@ puts "\nRequesting IB account data"
 
 ib.send_message :RequestAccountData, :subscribe => true, :account_code => account_code
 
-
-
-puts "\nNext, the data are displayed."
-
-# Queue#pop waits for data to appear"
-loop do
-  puts pq.pop.to_human
-  break if pq.empty?
+# Queue#pop waits for data to appear, closing the queu breaks while loop"
+while u =  q.pop
 end
-
-loop do
-  puts aq.pop.to_human
-  break if aq.empty?
-end
-
 
 puts "Cancelling account data subscription.."
 

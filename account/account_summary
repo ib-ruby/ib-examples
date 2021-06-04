@@ -47,7 +47,7 @@ require_relative 'config'
 #                the specified currency.
 #            $LEDGER:ALL - Single flag to relay all cash balance tags* in all
 #
-tags =  %w( NetLiquidation InitMarginReq DayTradesRemaining )
+tags =  %w( NetLiquidation NetLiquidation InitMarginReq DayTradesRemaining )
 # connect to IB TWS.
 
 q =  Queue.new
@@ -55,22 +55,23 @@ ib = IB::Connection.new **Init.params do | gw |
   ## Subscribe to foreseeable events before the connection is completed
   ## Subscribe to TWS alerts/errors
   gw.subscribe(:Alert){ |msg| puts msg.to_human }
+  # Add message to the queue
   gw.subscribe(:AccountSummary){ |msg| q <<  msg }
-  gw.logger.level = Logger::FATAL # DEBUG  -- INFO -- WARN -- ERROR  -- FATAL
+  # After receiving results, wait for Confirmation from TWS. Then close queue
+  gw.subscribe(:AccountSummaryEnd){  q.close }
+  gw.logger.level = Logger::FATAL # DEBUG #:-- INFO -- WARN -- ERROR  -- FATAL
 end
 
 # request the  AccountSummary
 request_id = ib.send_message :RequestAccountSummary, tags: tags.join(',')
-# wait  for the data to return
-Thread.new do
-  while  p = q.pop
-    puts p.to_human
-  end
+# wait  for the data to return and print
+while  p = q.pop
+  puts p.to_human
 end
-sleep 1
-
+#  closing the queue breaks while loop
 puts "\n *** canceling Request ..."
 ib.send_message :CancelAccountSummary, id: request_id
 puts "done."	
+sleep 0.5 
 
 
