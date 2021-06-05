@@ -2,11 +2,12 @@
 #
 # This script gets details for specific contract from IB
 #
-# It  just requests the information from the tws. 
+# It uses the _verify_ helper-method of Contract
 
 require 'bundler/setup'
 # load predefined symbols
 require 'ib/symbols'
+require 'ib/verify'
 require_relative 'config'
 
 include IB
@@ -36,32 +37,23 @@ contracts = stock_contracts + future_contracts + option_contracts + index_contra
 # Connect to IB TWS.
 ib = Connection.new **Init.params  do | gw|
   # Subscribe to TWS alerts/errors and contract data end marker
-  gw.subscribe(:Alert, :ContractDataEnd) { |msg| puts msg.to_human }
-
-  # Now, subscribe to ContractData incoming events.  The code passed in the block
-  # will be executed when a message of that type is received, with the received
-  # message as its argument. In this case, we just print out the data.
-  gw.subscribe(:ContractData, :BondContractData) do |msg| 
-    puts msg.contract.to_human + "\n"
-    puts "Attributes: "
-    puts "\t"+ msg.contract.attributes.map{ |k,v|  "#{k} : #{v}" unless v.blank? || (v.is_a?(Numeric) && v.zero?)  }.join("\n\t")
-  end
+  gw.subscribe(:Alert) { |msg| puts msg.to_human }
 
 # Set log level
   gw.logger.level = Logger::FATAL
 end
-
-ib.wait_for :NextValidOrderId
-
 
 contracts.each do |contract|
   puts "\nRequesting contract data for #{contract.description}"
 
   # Request Contract details for the symbols we're interested in. TWS will
   # respond with ContractData messages, which will be processed by the code above.
-  ib.send_message :RequestContractData, contract: contract
+  contracts. map do | contract |
+    contract.verify( thread: true ) do | evaluated_contract |
+      puts evaluated_contract.to_human + "\n"
+      puts "Attributes: "
+      puts "\t"+ evaluated_contract.invariant_attributes.map{ |k,v|  "#{k} : #{v}" unless v.blank? || (v.is_a?(Numeric) && v.zero?)  }.join("\n\t")
+  end
+  end.join
 
-  # Wait for IB to respond to our request
-  ib.wait_for :ContractDataEnd, 5 #sec
-  ib.clear_received :ContractDataEnd
 end
