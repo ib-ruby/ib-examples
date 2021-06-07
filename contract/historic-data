@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 #
 # This script downloads historic data for specific symbols from IB
+# Its the modern vesrion
 
 require 'bundler/setup'
 require 'ib/symbols'

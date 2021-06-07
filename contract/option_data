@@ -1,24 +1,27 @@
 #!/usr/bin/env ruby
 #
-# This script subscribes to market data for a list of Options
+# This script subscribes to market data for a list of Options and prints them 
 
 require 'bundler/setup'
 require 'ib/symbols'
+require 'ib/verify'
 require_relative 'config'
 
 
-COUNT_OF_EVENTS =  20
-# Definition of what we want market data for.  We have to keep track of what ticker id
-# corresponds to what symbol ourselves, because the ticks don't include any other
-# identifying information. The choice of ticker ids is, as far as I can tell, arbitrary.
+COUNT_OF_EVENTS =  40
+# Definition of what we want market data for.
 contracts = [ IB::Symbols::Options.ge,  IB::Symbols::Options.spy,
-							IB::Symbols::Options.aapl]
+              IB::Symbols::Options.aapl]
+# Array to store gernerated request_id's
 list_of_ids =[]
+
+# Queue for communication between threads
+q =  Queue.new
 
 counter = 0
 
 #contracts = [ IB::Option.new( symbol: 'ESTX50', exchange:'DTB', multiplier: 10, currency: 'EUR', strike: 3200, expiry: '202012', right: :put) ,IB::Symbols::Options.ge ]
-# First, connect to IB TWS. Arbitrary :client_id is used to identify your script
+# First, connect to IB TWS. 
 ib = IB::Connection.new **Init.params  do | gw| 
 
   ## Subscribe to TWS alerts/errors
@@ -27,40 +30,44 @@ ib = IB::Connection.new **Init.params  do | gw|
 	gw.logger.level = Logger::FATAL
   # Subscribe to Ticker... events.  The code passed in the block will be executed when
   # any message of that type is received, with the received message as its argument.
-  # In this case, we just print out the tick.
+  # In this case, we  put the  data to the queue
+  # After 20 events: close the queue  
   #
-  # (N.B. The description field is not from IB TWS. It is defined
-  #  locally in forex.rb, and is just arbitrary text.)
+  # After cancelling the subscrition, the tws continuies to send some ticks. 
   gw.subscribe(:TickPrice, :TickSize, :TickOption, :TickString, :TickRequestParameters) do |msg|
     counter =  counter + 1
-    if counter == COUNT_OF_EVENTS
-      puts "Cancelling market data subscription.."
-      list_of_ids.each { |id| ib.send_message :CancelMarketData, :id => id }  
-      puts "Generally, the TWS sends additional TickEvents after the subscription is cancelled ... \n\n"
-      Thread.new do 
-				sleep 1
-				puts "\n******** Press <Enter> to quit *********\n\n"
-			end
-    end
+    q.push msg  unless q.closed?
+    q.close if counter == COUNT_OF_EVENTS
   end
 end
-
 # Now we actually request market data for the symbols we're interested in.
 #
 # ### ticklist-values :  lib/ib/messages/outgoing/request_marketdata.rb 
+# 100 : Option Volumne
+# 101 : Option Open Interest
+# 106 :Option Implied Volatility
 ib.send_message :RequestMarketDataType, :market_data_type => :delayed
+#  ensure that the contracts are valid
+contracts = contracts.map{|y| y.verify.first}.compact
 list_of_ids = contracts.map do |contract|
   ib.send_message :RequestMarketData, :contract => contract ,  tick_list: [100,101,106]
 end
 # we modify contracts: { ticker_id => Contract } ( Will be used in the subscrption thread )
 contracts =  list_of_ids.zip( contracts ).to_h
 puts "Contracts: \n\t  #{contracts.map{|x,y| "#{x} :: #{y.to_human}"}.join("\n\t")} "
-puts "\nSubscribed to market data"
-puts "\n******** Press <Enter> to cancel subscriptions  *********\n\n"
-STDIN.gets
+
+## close the queue after 20 seconds
+t =  Thread.new do
+  (1 .. 20 ).each{ sleep 1 }
+  q.close
+end
+
+while  msg =  q.pop
+   puts  contracts[msg.ticker_id].to_human
+   puts msg.to_human
+end
 puts "Cancelling market data subscription.."
 
 contracts.each_with_index { | contract, i| ib.send_message :CancelMarketData, :id => i+1 }
 
-puts "\n******** Press <Enter> to quit.. *********\n\n"
-STDIN.gets
+puts "finished"

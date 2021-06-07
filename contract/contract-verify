@@ -10,11 +10,13 @@ require 'ib/symbols'
 require 'ib/verify'
 require_relative 'config'
 
+q =  Queue.new
+
 include IB
 # Definition of what we want market data for. 
 #
 # I. Selected Contracts
-contracts = [ IB::Symbols::Stocks.wfc,
+ contracts = [ IB::Symbols::Stocks.wfc,
               IB::Symbols::Stocks.vxx,
               IB::Symbols::Futures.vix,
               IB::Symbols::Futures.ym,
@@ -25,35 +27,45 @@ contracts = [ IB::Symbols::Stocks.wfc,
               IB::Symbols::Stocks.wrong ]
 # or
 # II. Use predefined Contracts
-stock_contracts =   Symbols::Stocks.all.map{|x|  Symbols::Stocks.send x }
-future_contracts =  Symbols::Futures.all.map{|x|  Symbols::Futures.send x }
-option_contracts =  Symbols::Options.all.map{|x|  Symbols::Options.send x }
-index_contracts =   Symbols::Index.all.map{|x|  Symbols::Index.send x }
+ stock_contracts =   Symbols::Stocks.all.map{|x|  Symbols::Stocks.send x }
+ future_contracts =  Symbols::Futures.all.map{|x|  Symbols::Futures.send x }
+ option_contracts =  Symbols::Options.all.map{|x|  Symbols::Options.send x }
+ index_contracts =   Symbols::Index.all.map{|x|  Symbols::Index.send x }
 
-## comment if you want to display selected contracts ( I. )
-contracts = stock_contracts + future_contracts + option_contracts + index_contracts
+ ## comment if you want to display selected contracts ( I. )
+ contracts = stock_contracts + future_contracts + option_contracts + index_contracts
 
 
 # Connect to IB TWS.
-ib = Connection.new **Init.params  do | gw|
+ ib = Connection.new **Init.params  do | gw|
   # Subscribe to TWS alerts/errors and contract data end marker
   gw.subscribe(:Alert) { |msg| puts msg.to_human }
 
 # Set log level
   gw.logger.level = Logger::FATAL
-end
+ end
 
-contracts.each do |contract|
-  puts "\nRequesting contract data for #{contract.description}"
 
-  # Request Contract details for the symbols we're interested in. TWS will
-  # respond with ContractData messages, which will be processed by the code above.
-  contracts. map do | contract |
+# Verify the Contracts (async)
+producer = contracts. map do | contract |
+    puts "\nRequesting contract data for #{contract.description}"
     contract.verify( thread: true ) do | evaluated_contract |
-      puts evaluated_contract.to_human + "\n"
-      puts "Attributes: "
-      puts "\t"+ evaluated_contract.invariant_attributes.map{ |k,v|  "#{k} : #{v}" unless v.blank? || (v.is_a?(Numeric) && v.zero?)  }.join("\n\t")
+      #  put the datat to the queue
+      q.push evaluated_contract
+    end
   end
-  end.join
 
-end
+consumer = Thread.new do
+  i = 0
+  # wait for data
+  while  contract =  q.pop   do
+     i +=1
+      puts contract.to_human + "\n"
+      puts "#{i} Attributes: "
+      puts "\t"+ contract.invariant_attributes.map{ |k,v|  "#{k} : #{v}" unless v.blank? || (v.is_a?(Numeric) && v.zero?)  }.join("\n\t")
+#      break if  i == 103
+  end
+ end
+ producer.join
+ # wait 0.5 sec to finish processing
+ sleep 0.5

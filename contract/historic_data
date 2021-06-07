@@ -1,6 +1,7 @@
 #!/usr/bin/env ruby
 #
 # This script downloads historic data for specific symbols from IB
+# This is the original ib-ruby script
 
 require 'bundler/setup'
 require 'ib/symbols'
