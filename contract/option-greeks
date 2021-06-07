@@ -1,0 +1,44 @@
+#!/usr/bin/env ruby
+#
+# This script subscribes to market data for a list of Options  gathers Option-greeks
+
+require 'bundler/setup'
+require 'ib/symbols'
+require 'ib/verify'
+require 'ib/option-greeks'
+require_relative 'config'
+
+
+# Definition of what we want market data for.
+contracts = [ IB::Symbols::Options.ge,  IB::Symbols::Options.spy,
+              IB::Symbols::Options.aapl]
+# Array to store gernerated request_id's
+list_of_ids =[]
+
+# Queue for communication between threads
+q =  Queue.new
+
+counter = 0
+
+#contracts = [ IB::Option.new( symbol: 'ESTX50', exchange:'DTB', multiplier: 10, currency: 'EUR', strike: 3200, expiry: '202012', right: :put) ,IB::Symbols::Options.ge ]
+# First, connect to IB TWS. 
+ib = IB::Connection.new **Init.params  do | gw| 
+
+  ## Subscribe to TWS alerts/errors
+  gw.subscribe(:Alert, :ManagedAccounts) { |msg| puts msg.to_human }
+	#  set the log level
+	gw.logger.level = Logger::FATAL
+end
+
+#  ensure that the contracts are valid
+contracts = contracts.map{|y| y.verify.first}.compact
+
+th= contracts.map{ |x| x.request_greeks thread: true  }
+
+# waif for all requests to finish
+th.each{ |x| x.join }
+
+# output of the results
+puts contracts.map{ |x| [x.to_human, x.greek.to_human].join " --> \n" }.join "\n"
+
+puts "finished"
