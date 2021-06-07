@@ -1,0 +1,63 @@
+#!/usr/bin/env ruby
+##
+## This script connects to IB API and collects snaphot Data for given Contracts
+##
+#
+
+require 'bundler/setup'
+require 'ib/symbols'
+require 'ib/verify'
+require 'ib/market-price'
+require_relative 'config'
+
+# # Connect to IB TWS
+ib = IB::Connection.new **Init.params do  | gw |
+
+  gw.subscribe(:Alert){ |m| puts m.to_human }
+  gw.subscribe(:TickRequestParameters, :MarketDataType) {}
+
+end
+
+contracts = [ IB::Stock.new( symbol: 'FAST', :con_id => 269120, :exchange => 'SMART'),
+              IB::Stock.new( :symbol => 'IBM'),
+              IB::Symbols::Forex.eurusd ].map { |y|  y.verify.first }.compact
+
+puts "*"*50
+puts "** Requesting Snapshot-Market-Data for  "
+puts "** #{contracts.map( &:to_human ) .join(  ' :: ' )}"
+
+th = contracts.map{|x|  x.market_price( thread: true ) }
+
+th.each &:join
+puts  '*'*85
+puts  "** Snapshot Data  #{" "*65}**"
+puts contracts.map{|x| [x.to_human ,x.bars.inspect].join( "-->")}.join("\n")
+puts  '*'*85
+
+
+puts "done."
+
+
+=begin
+Expected Output
+
+
+
+ INFO::Connected to server, version: 137,
+  connection time: 2021-06-07 06:19:08 +0000 local, 2021-06-07T06:19:08+00:00 remote.
+ **************************************************
+ ** Requesting Snapshot-Market-Data for  
+ ** <Stock: FAST USD NASDAQ> :: <Stock: IBM USD NYSE> :: <Contract: EUR forex IDEALPRO USD>
+ TWS Error 354: Requested market data is not subscribed.Delayed market data is available.Error&BEST/STK/Top&BEST/STK/Top&BEST/STK/Top&BEST/STK/Top
+ INFO::<Stock: FAST USD NASDAQ> --> requesting delayed data
+ INFO::<Stock: IBM USD NYSE> --> requesting delayed data
+ INFO::Requested market data is not subscribed.Delayed market data is not available.EUR.USD Forex/TOP/ALL
+ ERROR::<Contract: EUR forex IDEALPRO USD> --> No marketdata permissions
+ *************************************************************************************
+ ** Snapshot Data                                                                   **
+ <Stock: FAST USD NASDAQ>-->[{:last=>0.0, :bid=>-1.0, :ask=>-1.0, :close=>53.07}]
+ <Stock: IBM USD NYSE>-->[{:close=>147.42, :last=>0.0, :bid=>-1.0, :ask=>-1.0}]
+ <Contract: EUR forex IDEALPRO USD>-->[]
+ *************************************************************************************
+ done.
+=end

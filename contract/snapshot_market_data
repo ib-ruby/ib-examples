@@ -16,12 +16,10 @@ class Snapshot
   end
 
   def print_results
-    #	@prices.each do |x,y|
-    #		STDOUT.print "	#{@contracts[x][:display_text] } \t" +
-    #			y.collect{|x,y| "#{x}: #{y}"}.join(" \n\t\t\t ") +" \n"
-    #	enda
     @prices.each do | a ,b |
+      # first separate prices from contract-data
       contract = b.delete :contract
+      # if valid data are present, print them
       if contract.present?
         puts contract.to_human
         print b  # [:bid_price], b[:ask_price], b[:high], b[:low], b[:close_price]
@@ -30,6 +28,9 @@ class Snapshot
     end
   end
 
+  def list_contracts
+    @contracts.map &:to_human
+  end
 
   def process
     ib =  IB::Connection.current
@@ -44,9 +45,9 @@ class Snapshot
       end
     end
     #  we collect price-events in @prices-Hash
-    ib.subscribe( :TickPrice){ |msg| @prices[msg.ticker_id][msg.type]=msg.price }
+    ib.subscribe( :TickPrice){ |msg| @prices[msg.ticker_id][msg.type] = msg.price }
     # When finished, print the results
-    ib.subscribe( :TickSnapshotEnd){ count -=1; print_results if count.zero? }
+    ib.subscribe( :TickSnapshotEnd){ count -=1;  print_results if count.zero? }
     # fire the request
     ib.send_message :RequestMarketDataType, :market_data_type => :delayed
 
@@ -72,10 +73,16 @@ IB::Connection.new **Init.params  do | gw |
   gw.logger.level = Logger::FATAL
 end
 
+
 s = Snapshot.new
 s.add_contract  IB::Stock.new symbol: 'FAST', :con_id => 269120, :exchange => 'SMART'
 s.add_contract  IB::Stock.new :symbol => 'IBM'
 s.add_contract  IB::Symbols::Forex.eurusd
+
+puts "*"*50
+puts "** Requesting Snapshot-Market-Data for  "
+puts "** #{s.list_contracts.join( ' :: ' )}"
+
 s.process
 
 Thread.new do 
