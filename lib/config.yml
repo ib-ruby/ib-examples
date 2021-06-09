@@ -1,0 +1,9 @@
+# Enter Port values here
+#  4001/7696  for active accounts
+#  4002/7697 for demo accounts
+---
+:gateway:  4002
+:tws: 7497
+# leave this commented to  enable several notebook sessions
+#:client_id: 2000
+:product: :gateway
