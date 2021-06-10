@@ -34,5 +34,5 @@ The examples are devided into three categories
   Gather Information about the account itself  
   List Balances and portfolio-positions
 
-
+* Experimental Jupyter Notebooks are included
 
