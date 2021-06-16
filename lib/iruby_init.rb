@@ -30,7 +30,7 @@ end # Array
  G = IB::Gateway.new **Init.params  
  C =  G.tws
   # Subscribe to TWS alerts/errors and contract data end marker
- C.subscribe(:Alert) { |msg| puts msg.to_human }
+# C.subscribe(:Alert) { |msg| puts msg.to_human }
  
   puts  "----> G    points to the Gateway-Instance"
 	puts  "----> C    points to the Connection-Instance"
@@ -41,7 +41,7 @@ end # Array
     puts  "----> Multible accounts detected"
     puts  "----> G.clients  points to the User-Accounts"
   end
-
+#G.logger.level = Logger::FATAL
 include IB
 
 puts "Namespace is IB !"

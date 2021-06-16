@@ -1,5 +1,5 @@
 require 'yaml'
-
+require 'logger'
 module Init
 
   def self.params
@@ -9,6 +9,6 @@ module Init
       YAML::load_file( File.expand_path('../config.yml',__FILE__))[key]
     end
 
-    { client_id:  read_yml[ :client_id ] ,   port:  read_yml[ read_yml[ :product ] ] }
+    { port:  read_yml[ read_yml[ :product ] ] }
   end
 end
