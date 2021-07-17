@@ -1,0 +1,69 @@
+#!/usr/bin/env ruby
+#
+# This script places a »One Cancelles All Order«
+#
+#  
+#  
+#  
+
+require 'bundler/setup'
+require 'ib-api'
+require 'ib/extensions'
+require 'ib/symbols'
+require_relative 'config'
+# Only for Advisor accounts: you need to provide account_code such as U666777
+account_code = ARGV[0] || ''
+
+# First, connect to IB TWS and subscribe for events. 
+ib = IB::Connection.new **Init.params  do | gw | 
+# Subscribe to TWS alerts/errors and order-related messages
+	gw.subscribe(:Alert, :OpenOrder, :ManagedAccounts) { |msg| puts msg.to_human }
+  # reduce the noise
+  gw.subscribe(:OrderStatus, :TickRequestParameters, :TickString, :TickSize, :TickPrice, :TickSnapshotEnd, :MarketDataType){}
+end
+
+# Create an array of candidates to trade
+stocks = [ :ge, :msft, :t ].map{ |s| IB::Stock.new( symbol: s ).verify.first }.compact
+
+error "Initialisation of stocks was unsuccessfull. Got only {stocks.size} of 3 " if stocks.size < 3
+
+# Fetch market prices and store them in stock.bars
+stocks.map{|s| s.market_price(thread: true)}.each( &:join)
+
+# specifiy the size of the investment
+investment = 10000 # USD
+
+
+# Unique identifier for the oca
+ib.wait_for :NextValidId
+oca =  "ibr_#{ib.next_order_id}"
+
+# Create orders
+
+orders = stocks.map do | s |
+  puts "processing: #{s.to_human}"
+  ref_price =  s.bars.first[:close].to_f
+  price  = ref_price - ref_price * 0.05
+  quantity = (investment.to_f / price ).round
+
+  IB::Limit.order :total_quantity => quantity.to_i,
+                  :price => price.round(2),
+                  :action => :buy,
+                  :account => account_code,
+                  :oca_group =>  oca,
+                  :oca_type => 1,
+                  :contract => s
+ #                 :transmit =>  false
+end
+
+# The orders can also placed with "transmit: false". Only the last order is then transmitted
+#
+#orders.last.transmit = true
+
+orders.each{ |o| ib.place_order o, o.contract  }
+
+# inspect the result
+ib.send_message :RequestAllOpenOrders
+sleep 0.4
+puts "I\n******** Press <Enter> to cancel... *********\n\n"
+STDIN.gets
