@@ -1,0 +1,52 @@
+#!/usr/bin/env ruby
+#
+# This script connects to IB API gets End of Day Data and prints them on STDOUT
+#
+# If no parameter is specified, the first entry of IB::Symbols::Stocks is processed
+#
+# Accepted parameter
+#
+# Symbol             # default: ibkr
+#
+# Count of days      # default: 100
+#
+# Currency           # derault: USD
+#
+# Exchange           # default: SMART
+#
+# Usage
+#
+#  ./end-of-day-data DAI 200 EUR SMART > daimler.csv
+#
+# **notice** A Marketdata Subscription is needed to fetch EOD data
+
+require 'bundler/setup'
+require "ib-api"
+require 'ib/extensions'
+require 'ib/symbols'
+require_relative 'config'
+
+# Connect to IB TWS.
+ ib = IB::Connection.new **Init.params  do | gw|
+  # Subscribe to TWS alerts/errors and contract data end marker
+  gw.subscribe(:Alert) { |msg| puts msg.to_human }
+  gw.subscribe(:Alert) { |msg| Kernel.exit if [200,162].include? msg.code }
+
+# Set log level
+  gw.logger.level = Logger::FATAL
+ end
+
+
+default =  IB::Symbols::Stocks.contracts.values.first
+arguments = ( [ :symbol, :count, :currency, :exchange].zip ARGV).to_h
+arguments.delete_if{|_,x| x.nil? }
+count = arguments.delete( :count) || 100
+contract = default.merge( **arguments).verify.first
+raise "No Contract detected" unless contract.is_a?(IB::Contract)
+
+data =  contract.eod( duration: "#{count} D" )
+
+puts data.first.invariant_attributes.keys.join(", ")
+puts data.map{|x| x.invariant_attributes.values.join(", ")}
+
+
