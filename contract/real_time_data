@@ -7,6 +7,7 @@ require 'ib/symbols'
 require_relative 'config'
 
 contracts = [ IB::Symbols::Futures.micro_russell,
+              IB::Option.new( symbol: 'VIAC', strike: 38.5, expiry: 20210618, right: :put, exchange: :smart),
               IB::Symbols::Forex[:gbpusd] ]
 c_hash =  {}
 # Connect to IB TWS.

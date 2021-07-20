@@ -48,10 +48,10 @@ Fields not needed for a particular security should be left blank (e.g. strike an
 
 For example, to query the General Electric 15  Strike Call expiring in January 2022, use:
 
-  $ ./historic_data_cli --security :GE:OPT:202201:15:CALL::SMART::USD:
-  $ ./historic_data_cli --security :GE:STK:
-  $ ./historic_data_cli --security :DAX:IND:::::DTB::EUR:
-  $ ./historic_data_cli --security :DAX:FUT:202112:::5:DTB::EUR:
+  $ ./historic-data-cli --security :GE:OPT:202201:15:CALL::SMART::USD:
+  $ ./historic-data-cli --security :GE:STK:
+  $ ./historic-data-cli --security :DAX:IND:::::DTB::EUR:
+  $ ./historic-data-cli --security :DAX:FUT:202112:::5:DTB::EUR:
 
 
 Consult contract.rb for allowed values, and see also the examples in the symbols/ directory
@@ -140,13 +140,20 @@ REGULAR_HOURS_ONLY = opt["nonregularhours"] ? 0 : 1
 DATE_FORMAT = (opt["dateformat"] && opt["dateformat"].to_i) || 1
 
 
-lastMessageTime = Queue.new # for communicating with the reader thread.
+q = Queue.new # for communicating with the reader thread.
+
+# Redirect logger into STDERR
+logger =  Logger.new(STDERR)
+logger.level = Logger::INFO
+logger.formatter = proc { |s, _, _ , msg| "#{"%1s" % s[0]}: #{msg}\n" }
+
+
 
 # First, connect to IB TWS.
-ib = IB::Connection.new **Init.params do | gw |
+ib = IB::Connection.new **Init.params.merge( logger: logger ) do | gw |
 
 	# Subscribe to TWS alerts/errors
-	gw.subscribe(:Alert) { |msg| puts msg.to_human }
+  gw.subscribe(:Alert, :ManagedAccounts) { |msg| STDERR.puts msg.to_human }
 
 
 	# Subscribe to incoming HistoricalData events. The code passed in the
@@ -159,16 +166,14 @@ ib = IB::Connection.new **Init.params do | gw |
 	# The incoming message packet from TWS just identifies it by ticker id.
 	#
 	gw.subscribe(:HistoricalData) do |msg|
+    STDERR.puts "Received #{msg.count} items:"
 		if opt["csv"]
-			puts "date,time,open,high,low,close,volume,wap,has_gaps"
-			msg.results.each do |datum|
-				puts "#{datum.time},#{datum.open},#{datum.high},#{datum.low}," +
-				"#{datum.close},#{datum.volume},#{datum.wap},#{datum.has_gaps}"
-			end
-			STDERR.puts "Received #{msg.count} items:"
-			msg.results.each { |datum| puts datum.to_s }
+      puts msg.results.first.invariant_attributes.keys.join(', ') 
+      puts msg.results.map{|x| x.invariant_attributes.values.join(", ")}
+    else
+			puts msg.results.map &:to_human
 		end
-		lastMessageTime.push(Time.now)
+		q.push(Time.now)
 	end
 end 
 # Now we actually request historical data for the symbols we're
@@ -186,13 +191,6 @@ ib.send_message :RequestHistoricalData,
                 :keep_up_todate => 0,
                 :format_date => DATE_FORMAT
 
-# A complication here is that IB does not send any indication when all historic data
-# is done being delivered. So we have to guess - when there is no more new data for
-# some period, we interpret that as "end of data" and exit.
-sleep 0.2
-loop do
-  lastTime = lastMessageTime.pop # blocks until a message is ready on the queue
-  sleep 0.1 # .. wait ..
-  exit if lastMessageTime.empty? # if still no more messages after 2 more seconds, exit.
-end
+ # wait until the data appear and exit 
+ q.pop # blocks until a message is ready on the queue
 
