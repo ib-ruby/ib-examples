@@ -52,13 +52,13 @@ orders = stocks.map do | s |
                   :account => account_code,
                   :oca_group =>  oca,
                   :oca_type => 1,
-                  :contract => s
- #                 :transmit =>  false
+                  :contract => s,
+                  :transmit =>  false
 end
 
 # The orders can also placed with "transmit: false". Only the last order is then transmitted
 #
-#orders.last.transmit = true
+orders.last.transmit = true
 
 orders.each{ |o| ib.place_order o, o.contract  }
 
