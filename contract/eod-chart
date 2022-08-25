@@ -1,0 +1,81 @@
+#!/usr/bin/env ruby
+#
+# This script connects to IB API gets End of Day Data and prints them on STDOUT
+#
+# If no parameter is specified, the first entry of IB::Symbols::Stocks is processed
+#
+# Accepted parameter
+#
+# Symbol             # default: ibkr
+#
+# Count of days      # default: 100
+#
+# Currency           # derault: USD
+#
+# Exchange           # default: SMART
+#
+# Usage
+#  * put output and log into separat files
+#
+#  ./end-of-day-data DAI 200 EUR SMART > daimler.csv 2>>eod.log
+#
+#  *  display output and add log to logfile
+#
+#  ./end-of-day-data DAI 200 EUR SMART 2>>eod.log
+#
+#  *  pipe output to an external program
+#
+#  ./end-of-day-data DAI 200 EUR SMART | less
+#  
+# 
+# **notice** A Marketdata Subscription is needed to fetch EOD data
+
+require 'bundler/setup'
+require "ib-api"
+require 'ib/extensions'
+require 'ib/symbols'
+require_relative 'config'
+require 'logger'
+require 'vega'
+
+# Redirect logger into STDERR
+logger =  Logger.new(STDERR)
+logger.level = Logger::INFO
+logger.formatter = proc { |s, _, _ , msg| "#{"%1s" % s[0]}: #{msg}\n" }
+
+# Put intro into log
+logger.info "-"*80
+logger.info "#{Time.now.to_s} Start fetching EOD-Data #{ARGV.join(', ')}"
+# Connect to IB TWS.
+IB::Connection.new **Init.params.merge(logger: logger)  do | ib |
+  # Subscribe to TWS alerts/errors and contract data end marker
+  ib.subscribe(:Alert) { |msg| logger.info  msg.to_human }
+  ib.subscribe(:Alert) { |msg| Kernel.exit if [200,162].include? msg.code }
+ end
+
+
+default =  IB::Symbols::Stocks.contracts.values.first
+arguments = ( [ :symbol, :count, :currency, :exchange].zip ARGV).to_h
+arguments.delete_if{|_,x| x.nil? }
+count = arguments.delete( :count) || 100
+# if an invalid contract is specified, IB-Error 200 is raised by verify
+contract = default.merge( **arguments).verify.first
+logger.info "Fetching EOD-Data for #{contract.to_human} --> #{contract.contract_detail.long_name}"
+# fetch the data from TWS
+data =  contract.eod( duration: "#{count} D" )
+# output of csv-data
+#$stdout.puts data.first.invariant_attributes.keys.join(", ")
+#$stdout.puts data.map{|x| x.invariant_attributes.values.join(", ")}
+
+chart = Vega.lite
+    .data( data )     # or .data( iwm_data )  # or even  iwm.eod( duration: 100)
+    .mark( type: "line",
+           point:{ "filled": false, fill: "white"},  
+           interpolate: "monotone", 
+           tooltip: true )
+    .encoding(x: {field: "time",  type: "temporal", 
+                                  title: 'Handelstag'}, 
+              y: {field: 'close', type: "quantitative", 
+                                  scale: { zero: false}, 
+                                  title: 'Tagesschlußkurs'  })
+STDOUT.puts chart.to_s

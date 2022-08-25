@@ -6,10 +6,11 @@ require 'bundler/setup'
 require 'ib/symbols'
 require_relative 'config'
 
-contracts = [ IB::Symbols::Futures.micro_russell,
-              IB::Option.new( symbol: 'VIAC', strike: 38.5, expiry: 20210618, right: :put, exchange: :smart),
+## list of contract with market-data permissions
+contracts = [ IB::Symbols::Futures.stoxx.merge( symbol: 'CAC40', exchange: 'MONEP' ),
+              IB::Symbols::Options.aapl,
               IB::Symbols::Forex[:gbpusd] ]
-c_hash =  {}
+ids =  {}
 # Connect to IB TWS.
 ib = IB::Connection.new **Init.params  do | gw | 
 
@@ -19,17 +20,17 @@ ib = IB::Connection.new **Init.params  do | gw |
 	# Subscribe to RealTimeBar incoming events. We have to use message request_id
 	# to figure out what contract it's for.
 	gw.subscribe(IB::Messages::Incoming::RealTimeBar) do |msg|
-    puts c_hash[msg.request_id].symbol + ": #{msg.bar.to_human}"
+    puts ids[msg.request_id].symbol + ": #{msg.bar.to_human}"
 	end
 end
-c_hash = contracts.map do  | c |
+contracts.each do  | c |
   request_id = ib.send_message IB::Messages::Outgoing::RequestRealTimeBars.new(
                         contract: c,
                   #     bar_size: 5, # Only 5 secs bars supported  (hard coded in messages/outgoing/bar_requests)
                         data_type: :trades,	# possible values: :trades, :bid, :ask , :midpoint
                         use_rth:  false)
-  [ request_id, c ]
-end.to_h
+  ids[ request_id ] =  c 
+end
 
 # We use the generated Hash in the subscription part to distinguish between multible assets 
 

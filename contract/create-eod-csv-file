@@ -14,9 +14,12 @@ module IB
     # creates (or overwrites) the specified file (or symbol.csv) and saves bar-data
     def to_csv file:nil
       file ||=  "#{symbol}.csv"
-      if bars.present
+      # contract.eod collects the data and stores them in contract.bars
+      if bars.present?
         headers = bars.first.invariant_attributes.keys
         CSV.open( file, 'w' ) {|f| f << headers ; bars.each {|y| f << y.invariant_attributes.values } }
+        puts "CSV File created ---> #{file}"
+        puts "+-"*40
       end
     end
   end
@@ -26,8 +29,9 @@ end
 # Definition of what we want data for
 # Predefined Symbol-definitions -->  Symbols::Futures.all, Symbols::Stock.all, etc
 contracts = [ IB::Symbols::Futures.mini_dax,
-              IB::Stock.new( symbol: 'GE'),
-              IB::Symbols::Forex.eurusd ]
+              IB::Symbols::Stocks.msft,
+              IB::Symbols::Forex[:gbpusd]
+            ]
 
 
 # Connect to the TWS
@@ -35,6 +39,8 @@ IB::Connection.new( **Init.params ) { |gw| gw.subscribe( :Alert ) { |msg| puts m
 
 # Finally request historic data and write them to csv-files
 contracts.each do |c|
+  puts "+-"*40
+  puts " Fetching EOD-Data for #{c.to_human}"
   c.eod( duration: '200 D' )
 	c.to_csv
 end

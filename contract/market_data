@@ -7,14 +7,13 @@ require 'ib-api'
 require 'ib/symbols'
 require_relative 'config'
 
-COUNT_OF_EVENTS =  20
+COUNT_OF_EVENTS =  200
 # Definition of what we want market data for.  We have to keep track of what ticker id
 # corresponds to what symbol ourselves, because the ticks don't include any other
 # identifying information. The choice of ticker ids is, as far as I can tell, arbitrary.
 # (note: the forex symbols used here  are defined in lib/ib/symbols/forex.rb of the ib-symbols gem)
-market = {123 => IB::Symbols::Forex.gbpusd  ,
-           456 => IB::Symbols::Forex.eurusd ,
-           789 => IB::Symbols::Forex.usdcad }
+symbols = [ IB::Symbols::Forex.gbpusd , IB::Symbols::Forex.eurusd , IB::Symbols::Forex.usdcad  ]
+ids = {}
 counter = 0
 q =  Queue.new
 #
@@ -30,13 +29,13 @@ ib = IB::Connection.new **Init.params do | gw |
   # argument. In this case, we just print out the tick. NB: The description field is not
   # from IB TWS. It is defined locally in forex.rb, and is just arbitrary text.
 
-  gw.subscribe(:TickRequestParameters, :TickPrice, :TickSize,  :TickGeneric) do |msg|
-    q.push msg
+  gw.subscribe( :TickRequestParameters, :TickPrice, :TickSize,  :TickGeneric ) do |msg|
+    q.push msg unless q.closed?
     counter = counter + 1
     if counter == COUNT_OF_EVENTS
       puts "\nCancelling market data subscription.."
-      market.each_pair { |id, _| ib.send_message :CancelMarketData, :id => id }  
-      puts "Generally, the TWS sends additional TickEvents after the subscription is cancelled ... \n\n"
+      ids.each { | id, _ | ib.send_message :CancelMarketData, :id => id }  
+      puts "The TWS sends additional TickEvents after the subscription is cancelled ... \n\n waiting for 1 sec\n\n"
       sleep 1
       q.close
     end
@@ -44,8 +43,9 @@ ib = IB::Connection.new **Init.params do | gw |
 end
 # Now we actually request market data for the symbols we're interested in.
 ib.send_message :RequestMarketDataType, :market_data_type => :delayed
-market.each_pair do |id, contract|
-  ib.send_message :RequestMarketData, :id => id, :contract => contract
+symbols.each do | c |
+  id = ib.send_message :RequestMarketData, :contract => c
+  ids[id] = c
 end
 
 puts "\nSubscribed to market data"
@@ -53,7 +53,7 @@ puts "\n********* Receiving #{COUNT_OF_EVENTS} TickEvents, then canceling the su
 
 
 while  msg =  q.pop
-    puts market[msg.ticker_id].description + ": " + msg.to_human
+    puts ids[msg.ticker_id].description + ": " + msg.to_human
 end
 
 puts "\n\nfinished."

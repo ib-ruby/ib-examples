@@ -1,0 +1,86 @@
+#!/usr/bin/env ruby
+#
+# This script downloads historic data for specific symbols from IB
+
+require 'bundler/setup'
+require 'ib/symbols'
+require_relative 'config'
+
+# We define request- subscribe_to-HistoricData as methods of Contract. 
+#
+module IB
+  module HistoricData
+
+    def request_historic_data back: "10 D", interval: :day1
+
+# bar_size: ---> IB::BAR_SIZES.values
+# => [:sec1, :sec5, :sec15, :sec30, :min1, :min2, :min3, :min5, :min15, :min30, :hour1, :day1]
+# what_to_show:
+# =>   :trades :midpoint, :bid, :ask, :bid_ask, :historical_volatility, :option_implied_volatility
+# use_rth: Determines whether to return all data available during the requested time span,
+#		  or only data that falls within regular trading hours. Valid values include:
+#
+#	    0 - all data is returned even where the market in question was outside of its
+#		regular trading hours.
+#	    1 - only data within the regular trading hours is returned, even if the
+      ib = Connection.current
+      @request_id = ib.send_message IB::Messages::Outgoing::RequestHistoricalData.new(
+        contract: self,
+        end_date_time: Time.now.to_ib,
+        duration: back, #    ?
+        bar_size: interval, #  IB::BAR_SIZES.key(:hour)?
+        what_to_show: :trades,
+        use_rth: 1,
+        keep_up_todate: 0)
+    end
+
+	# Subscribe to HistoricalData incoming events.  The code passed in the block
+	# will be executed when a message of that type is received, with the received
+	# message as its argument. In this case, we just print out the data.
+    def subscribe_to_historic_data queue
+      ib = Connection.current
+      ib.subscribe(IB::Messages::Incoming::HistoricalData) do |msg|
+        if msg.request_id == @request_id
+          self.bars = msg.results
+          queue.push msg.results.size       # notification of successfully receiced data
+        end
+      end
+    end
+  end  # module
+  class Contract
+    include HistoricData
+  end
+end
+
+# Definition of what we want data for
+# Predefined Symbol-definitions -->  Symbols::Futures.all, Symbols::Stock.all, etc
+contracts = [ IB::Symbols::Futures.mini_dax,
+              IB::Stock.new( symbol: 'GE'),
+              IB::Symbols::Forex.eurusd ]
+
+# Create a Queue for cummunication betwwen asyncronically delivered messages from TWS
+# and the main loop
+
+q = Queue.new
+
+# Connect to IB TWS -- Parameter .in config.yml
+ib = IB::Connection.new **Init.params  do | gw|
+  # Subscribe to TWS alerts/errors
+  gw.subscribe( :Alert ) { |msg| gw.logger.error msg.to_human if msg.code == 162 }
+  gw.subscribe( :Alert ) { |msg| q.push( msg.to_human ) if [162, 200].include? msg.code} 
+
+end
+
+
+contracts.each do |c|
+  subscription = c.subscribe_to_historic_data q
+  c.request_historic_data
+  q.pop # wait until data have been processed
+  ib.unsubscribe subscription #  we can now safely unsubscribe
+  c.bars.each { |b| ib.logger.info "#{c.symbol} -> #{b.to_human}" }
+end
+
+
+__END__
+
+

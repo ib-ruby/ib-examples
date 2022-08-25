@@ -1,0 +1,86 @@
+#!/usr/bin/env ruby
+#
+# This script connects to IB API gets End of Day Data and creates a VEGA-OHLC-Chart to be included in a web-page
+#
+# If no parameter is specified, the first entry of IB::Symbols::Stocks is processed
+#
+# Accepted parameter
+#
+# Symbol             # default: ibkr
+#
+# Count of days      # default: 100
+#
+# Currency           # derault: USD
+#
+# Exchange           # default: SMART
+#
+# Usage
+#  * put output and log into separat files
+#
+#  ./eod-ohlc-chart CS 200 EUR 1> cs.vega 2 >>cs.log
+#
+# 
+# **notice** A Marketdata Subscription is needed to fetch EOD data
+
+require 'bundler/setup'
+require "ib-api"
+require 'ib/extensions'
+require 'ib/symbols'
+require_relative 'config'
+require 'logger'
+require "vega"
+
+# Redirect logger into STDERR
+logger =  Logger.new(STDERR)
+logger.level = Logger::INFO
+logger.formatter = proc { |s, _, _ , msg| "#{"%1s" % s[0]}: #{msg}\n" }
+
+# Put intro into log
+logger.info "-"*80
+logger.info "#{Time.now.to_s} Start fetching EOD-Data #{ARGV.join(', ')}"
+# Connect to IB TWS.
+IB::Connection.new **Init.params.merge(logger: logger)  do | ib |
+  # Subscribe to TWS alerts/errors and contract data end marker
+  ib.subscribe(:Alert) { |msg| logger.info  msg.to_human }
+  ib.subscribe(:Alert) { |msg| Kernel.exit if [200,162].include? msg.code }
+ end
+
+
+# take the first contract in the list as default
+default =  IB::Symbols::Stocks.contracts.values.first
+arguments = ( [ :symbol, :count, :currency, :exchange].zip ARGV).to_h
+arguments.delete_if{|_,x| x.nil? }
+count = arguments.delete( :count) || 100
+# if an invalid contract is specified, IB-Error 200 is raised by verify
+# We overwrite it 
+contract = default.merge( **arguments).verify.first
+logger.info "Fetching EOD-Data for #{contract.to_human} --> #{contract.contract_detail.long_name}"
+# fetch the data from TWS
+data =  contract.eod( duration: "#{count} D" )
+candlestick_size =  (count.to_f * -0.13 + 14.6).round
+candlestick_size = 1 if candlestick_size <= 0
+chart = Vega.lite
+    .data( data )     # or .data( iwm_data )  # or even  iwm.eod( duration: 100)
+   .layer([ { mark: "bar",
+            encoding: { y: { field: "open" }, y2: { field: "close" },
+                      size: { value:  candlestick_size + 1 } },
+                      color: { value: "#000000" }  
+          },
+          { mark: "rule", 
+             encoding: { y: { field: "low" }, y2: { field: "high" } }
+          },
+          { mark: "bar",
+            encoding: { y: { field: "open" }, y2: { field: "close" },
+                        tooltip: true, 
+                       size: { value:  candlestick_size } } 
+          }
+          ])
+    .encoding( x: { field: "time",  type: "temporal", 
+                                  title: 'Handelstag'}, 
+              y: { field: 'close', type: "quantitative", 
+                                  scale: { zero: false }, 
+                                  title: 'Preis'  },
+              color: { condition: { test: "datum.open < datum.close", value: "#228B22"},  #"#06982d" },
+                      value: "#ae1325" }
+             )
+STDOUT.puts chart.to_s
