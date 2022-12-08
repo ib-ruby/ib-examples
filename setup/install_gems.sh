@@ -9,6 +9,7 @@ if [ ` ls | grep $1 | wc -l`  -eq 0 ] ; then
 	git clone https://github.com/ib-ruby/$1 
 else
 	echo "skipping  cloning $1, already present"
+	echo "delete Gemfile (and Gemfile.lock) and rerun this setup"
 fi
 }
 
@@ -32,7 +33,7 @@ make_gemfile(){
  gem \"rspec-collection_matchers\"
  gem \"guard\"
  gem \"guard-rspec\"
- gem \"standard\", group: [:development, :test]
+]
 
 " > Gemfile
 }
@@ -60,4 +61,3 @@ else
 fi
 
 
-cd $EXAMPLES_DIR
