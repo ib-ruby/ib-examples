@@ -7,14 +7,14 @@
 
 require 'bundler/setup'
 require 'yaml'
-require "rover"  # dataframes
+#  require "rover"  # dataframes
 
 require 'ib-gateway'
 require 'ib/market-price'
 require 'ib/option-chain'
 require 'ib/eod'
 require 'ib/symbols'
-require 'technical-analysis'
+# require 'technical-analysis'
 
 class Array
   # enables calling members of an array. which are hashes  by it name
