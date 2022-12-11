@@ -28,12 +28,6 @@ make_gemfile(){
  gem \"getopt\"
  gem \"pastel\"
  gem \"dry-core\"
- gem \"rspec\"
- gem \"rspec-its\"
- gem \"rspec-collection_matchers\"
- gem \"guard\"
- gem \"guard-rspec\"
-]
 
 " > Gemfile
 }
