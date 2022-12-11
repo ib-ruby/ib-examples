@@ -9,10 +9,15 @@ Its super easy to setup **_IB-Ruby_** in a _Lxc-Container_.
 * Require an Demo Account
 * Clone [IB-Container](https://github.com/ib-ruby/ib-container) and install one container on your hardware.
 * Enter the container  (use `lxc open _container-name_`)
-* Clone this respiratory
-* Run the install-script in /setup
+* ib-examples is included
 
-enjoy
+
+enjoy.
+
+Alternatively
+
+* clone this respository
+* run the install-script in /setup
 
 ## Console and Gateway
 
