@@ -28,6 +28,7 @@ th= contracts.map{ |x| x.request_greeks thread: true  }
 th.each{ |x| x.join }
 
 # output of the results
-puts contracts.map{ |x| [x.to_human, x.greek.to_human].join " --> \n" }.join "\n"
+#puts contracts.map{ |x| [x.to_human, x.greek.to_human].join " --> \n" }.join "\n"
+puts contracts.map( &:greek ).as_table
 
 puts "finished"
