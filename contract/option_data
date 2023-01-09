@@ -52,9 +52,9 @@ contracts = contracts.map{|y| y.verify.first}.compact
 list_of_ids = contracts.map do |contract|
   ib.send_message :RequestMarketData, :contract => contract ,  tick_list: [100,101,106]
 end
+puts contracts.as_table
 # we modify contracts: { ticker_id => Contract } ( Will be used in the subscription thread )
 contracts =  list_of_ids.zip( contracts ).to_h
-puts "Contracts: \n\t  #{contracts.map{|x,y| "#{x} :: #{y.to_human}"}.join("\n\t")} "
 
 ## close the queue after 20 seconds
 t =  Thread.new do
@@ -63,7 +63,7 @@ t =  Thread.new do
 end
 
 while  msg =  q.pop
-   puts  contracts[msg.ticker_id].to_human
+   puts  contracts[msg.ticker_id].as_table
    puts msg.to_human
 end
 puts "Cancelling market data subscription.."
