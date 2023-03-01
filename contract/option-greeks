@@ -8,9 +8,8 @@ require 'ib/verify'
 require 'ib/option-greeks'
 require_relative 'config'
 
-
 # Definition of what we want market data for.
-contracts = [ IB::Symbols::Options.ge,  IB::Symbols::Options.spy, IB::Symbols::Options.aapl]
+contracts = [ IB::Symbols::Options.ibm,  IB::Symbols::Options.spy, IB::Symbols::Options.goog100]
 # First, connect to IB TWS. 
 ib = IB::Connection.new **Init.params  do | gw| 
   ## Subscribe to TWS alerts/errors
@@ -20,15 +19,16 @@ ib = IB::Connection.new **Init.params  do | gw|
 end
 
 #  ensure that the contracts are valid
-contracts = contracts.map{|y| y.verify.first}.compact
-
+#  select an option from the middle of the option-chain
+contracts = contracts.map{|y| yy= y.verify; yy.at( (yy.size / 2 ) + 1)}.compact
+puts contracts.as_table
+# request greeks asynchronically
 th= contracts.map{ |x| x.request_greeks thread: true  }
 
 # wait for all requests to finish
 th.each{ |x| x.join }
 
 # output of the results
-#puts contracts.map{ |x| [x.to_human, x.greek.to_human].join " --> \n" }.join "\n"
-puts contracts.map( &:greek ).as_table
+puts contracts.map{ |x| [x.to_human, x.greek.to_human].join " --> \n" }.join "\n"
 
 puts "finished"
