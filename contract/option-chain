@@ -15,12 +15,12 @@ ib = IB::Connection.new **Init.params  do | gw |
 	gw.logger.level = Logger::ERROR # DEBUG  # -- INFO -- WARN -- ERROR  -- FATAL
 end
 
-TheYear =  2022
-TheStrike = 15
+TheYear =  2023
+TheStrike = 250
 TheRight =  :put
 
 # get expiries (last-trading-days)
-the_contract =  IB::Option.new	symbol: 'GE',
+the_contract =  IB::Option.new	symbol: 'MSFT',
 																currency: 'USD',
 																exchange: 'SMART',
 																expiry: TheYear,
@@ -32,11 +32,11 @@ puts "Using #{the_contract.to_human}"
 puts '*' * 85
 puts "           get all available expiries"
 puts '-' * 85
-contracts = the_contract.verify.sort{|a,b| a.last_trading_day <=> b.last_trading_day}
+contracts = the_contract.verify.sort_by{|a| a.last_trading_day }
 provided_expiries = contracts.map &:last_trading_day
 	# last trading day: format yyyy-mm-dd
 	# expiry: format yyyymmdd
-puts "detected Expiries  #{provided_expiries.join(" -- ")}"
+puts "detected Expiries \n #{provided_expiries.join(" -- ")}"
 
 puts '*' * 85
 puts
@@ -45,7 +45,8 @@ puts "Analysing the third detected expiry"
   the_contract =  IB::Option.new symbol: 'GE', exchange: 'SMART', last_trading_day: provided_expiries[2], right: TheRight 
 	puts  the_contract.to_human
 	puts "Expiry: #{the_contract.expiry}"
-  puts "Strikes: #{ the_contract.verify.map( &:to_human).join " \n " } "
+  #puts "Strikes: #{ the_contract.verify.map( &:to_human).join " \n " } "
+  puts "Strikes: "
+  puts the_contract.verify.sort_by{|x| x.strike}.as_table
 
 
-puts "NOTICE: Strikes are not sorted when :RequestContractData is used"
