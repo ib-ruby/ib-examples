@@ -1,0 +1,99 @@
+#!/usr/bin/env ruby
+
+#!/usr/bin/env ruby
+#
+# Calculate he korrelation between two stocks
+#
+# First EOD-Data are fetched.
+# They are stored in Contract.bars.
+# PolarDataFrames benefit from the buildin  `perason-correleation' function
+#
+#
+require 'bundler/setup'
+require 'ib/symbols'
+require "ib/eod"
+require "polars"
+require_relative 'config'
+
+
+IB::Connection.new **Init.params  do | gw | 
+
+	# Subscribe to TWS alerts/errors
+	gw.subscribe(:Alert) { |msg| puts msg.to_human }
+end
+
+# Lets compare  microsoft and wells fargo
+
+periods =  2016 .. 2022
+
+periods.each do | year |
+
+  msft =  IB::Symbols::Stocks.msft.eod( start: Date.new(year,1,1), duration: 360 )
+
+  aapl =  IB::Symbols::Stocks.aapl.eod( start: Date.new(year,1,1), duration: 360 )
+
+  df1 =  aapl.select([ "time","close" ])
+  df2 =  msft.select([ "time","close" ])
+
+  df =  df1.join( df2, on: 'time', how: 'left' )
+  korrelation = df.select( Polars.pearson_corr( Polars.col('close'),
+                                  Polars.col('close_right') ))
+
+  puts "korrelation #{year} :: \n #{korrelation.to_h.values}"
+end
+
+__END__
+
+expected output
+
+korrelation 2016 ::
+   [shape: (1,)
+   Series: 'close' [f64]
+   [
+             0.147784
+             
+   ]]
+korrelation 2017 ::
+   [shape: (1,)
+   Series: 'close' [f64]
+   [
+             0.941734
+             
+   ]]
+korrelation 2018 ::
+   [shape: (1,)
+   Series: 'close' [f64]
+   [
+             0.84325
+             
+   ]]
+korrelation 2019 ::
+   [shape: (1,)
+   Series: 'close' [f64]
+   [
+             0.715355
+             
+   ]]
+korrelation 2020 ::
+   [shape: (1,)
+   Series: 'close' [f64]
+   [
+             0.956754
+             
+   ]]
+korrelation 2021 ::
+   [shape: (1,)
+   Series: 'close' [f64]
+   [
+             0.914547
+             
+   ]]
+korrelation 2022 ::
+   [shape: (1,)
+   Series: 'close' [f64]
+   [
+             0.600044
+             
+   ]]
+
+

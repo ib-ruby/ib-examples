@@ -54,9 +54,8 @@ end
 
 # Definition of what we want data for
 # Predefined Symbol-definitions -->  Symbols::Futures.all, Symbols::Stock.all, etc
-contracts = [ IB::Symbols::Futures.mini_dax,
-              IB::Stock.new( symbol: 'GE'),
-              IB::Symbols::Forex.eurusd ]
+contracts = [ IB::Symbols::Futures.es,
+              IB::Stock.new( symbol: 'MSFT') ]
 
 # Create a Queue for cummunication betwwen asyncronically delivered messages from TWS
 # and the main loop
@@ -68,6 +67,7 @@ ib = IB::Connection.new **Init.params  do | gw|
   # Subscribe to TWS alerts/errors
   gw.subscribe( :Alert ) { |msg| gw.logger.error msg.to_human if msg.code == 162 }
   gw.subscribe( :Alert ) { |msg| q.push( msg.to_human ) if [162, 200].include? msg.code} 
+  gw.logger.level =  Logger::DEBUG
 
 end
 
