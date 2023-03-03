@@ -8,31 +8,26 @@
 # They are stored in Contract.bars.
 # PolarDataFrames benefit from the buildin  `perason-correlation' function
 #
-#
 require 'bundler/setup'
 require 'ib/symbols'
 require "ib/eod"
 require "polars"
 require_relative 'config'
 
-
 IB::Connection.new **Init.params  do | gw | 
-
 	# Subscribe to TWS alerts/errors
 	gw.subscribe(:Alert) { |msg| puts msg.to_human }
 end
 
-# Lets compare  microsoft and wells fargo
+# Lets compare  Microsoft and Apple
 
 periods =  2016 .. 2022
-
 puts
 puts "+-"*40
 puts
 periods.each do | year |
 
   msft =  IB::Symbols::Stocks.msft.eod( start: Date.new(year,1,1), duration: 360 )
-
   aapl =  IB::Symbols::Stocks.aapl.eod( start: Date.new(year,1,1), duration: 360 )
 
   df1 =  aapl.select([ "time","close" ])
@@ -40,7 +35,7 @@ periods.each do | year |
 
   df =  df1.join( df2, on: 'time', how: 'left' )
   korrelation = df.select( Polars.pearson_corr( Polars.col('close'),
-                                  Polars.col('close_right') ))
+                                        Polars.col('close_right') ))
 
   puts "correlation  MSFT/AAPL :: #{year} ::  #{korrelation.rows.flatten.first}"
 end
