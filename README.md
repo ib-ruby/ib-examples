@@ -2,6 +2,13 @@
 
 Collection of working scripts using the Interactive Brokers TWS API through  **_IB-Ruby_** 
 
+
+**New:  Correlation Example**
+Use Polar DataFrames to calculate the correlation between two assets
+or different timeframes of a single asset. 
+
+
+
 ## Setup
 
 Its super easy to setup **_IB-Ruby_** in a _Lxc-Container_.
@@ -16,7 +23,7 @@ enjoy.
 
 Alternatively
 
-* clone this respository
+* clone this repository
 * run the install-script in /setup
 
 ## Console and Gateway
@@ -26,7 +33,7 @@ For interactive experiments, `console` and `gateway` scripts are included in the
 
 ## Examples
 
-The examples are devided into three categories
+There are three categories
 
 * Contract  
   Scripts that deal with IB::Contracts.  
