@@ -26,6 +26,9 @@ end
 
 periods =  2016 .. 2022
 
+puts
+puts "+-"*40
+puts
 periods.each do | year |
 
   msft =  IB::Symbols::Stocks.msft.eod( start: Date.new(year,1,1), duration: 360 )
@@ -39,61 +42,19 @@ periods.each do | year |
   korrelation = df.select( Polars.pearson_corr( Polars.col('close'),
                                   Polars.col('close_right') ))
 
-  puts "korrelation #{year} :: \n #{korrelation.to_h.values}"
+  puts "korrelation  MSFT/AAPL :: #{year} ::  #{korrelation.rows.flatten.first}"
 end
 
 __END__
 
 expected output
+korrelation  MSFT/AAPL :: 2016 ::  0.1477841598713981
+korrelation  MSFT/AAPL :: 2017 ::  0.9417335033503089
+korrelation  MSFT/AAPL :: 2018 ::  0.8432503069374574
+korrelation  MSFT/AAPL :: 2019 ::  0.715354955094556
+korrelation  MSFT/AAPL :: 2020 ::  0.9567542242443048
+korrelation  MSFT/AAPL :: 2021 ::  0.9145466963913612
+korrelation  MSFT/AAPL :: 2022 ::  0.6000436830730178
 
-korrelation 2016 ::
-   [shape: (1,)
-   Series: 'close' [f64]
-   [
-             0.147784
-             
-   ]]
-korrelation 2017 ::
-   [shape: (1,)
-   Series: 'close' [f64]
-   [
-             0.941734
-             
-   ]]
-korrelation 2018 ::
-   [shape: (1,)
-   Series: 'close' [f64]
-   [
-             0.84325
-             
-   ]]
-korrelation 2019 ::
-   [shape: (1,)
-   Series: 'close' [f64]
-   [
-             0.715355
-             
-   ]]
-korrelation 2020 ::
-   [shape: (1,)
-   Series: 'close' [f64]
-   [
-             0.956754
-             
-   ]]
-korrelation 2021 ::
-   [shape: (1,)
-   Series: 'close' [f64]
-   [
-             0.914547
-             
-   ]]
-korrelation 2022 ::
-   [shape: (1,)
-   Series: 'close' [f64]
-   [
-             0.600044
-             
-   ]]
 
 
