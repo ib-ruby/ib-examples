@@ -2,12 +2,11 @@
 
 #!/usr/bin/env ruby
 #
-# Calculate he korrelation between two stocks
+# Calculate the correlation between two stocks
 #
 # First EOD-Data are fetched.
 # They are stored in Contract.bars.
-# PolarDataFrames benefit from the buildin  `perason-correleation' function
-#
+# PolarDataFrames benefit from the buildin  `perason-correlation' function
 #
 require 'bundler/setup'
 require 'ib/symbols'
@@ -15,24 +14,20 @@ require "ib/eod"
 require "polars"
 require_relative 'config'
 
-
 IB::Connection.new **Init.params  do | gw | 
-
 	# Subscribe to TWS alerts/errors
 	gw.subscribe(:Alert) { |msg| puts msg.to_human }
 end
 
-# Lets compare  microsoft and wells fargo
+# Lets compare  Microsoft and Apple
 
 periods =  2016 .. 2022
-
 puts
 puts "+-"*40
 puts
 periods.each do | year |
 
   msft =  IB::Symbols::Stocks.msft.eod( start: Date.new(year,1,1), duration: 360 )
-
   aapl =  IB::Symbols::Stocks.aapl.eod( start: Date.new(year,1,1), duration: 360 )
 
   df1 =  aapl.select([ "time","close" ])
@@ -40,21 +35,21 @@ periods.each do | year |
 
   df =  df1.join( df2, on: 'time', how: 'left' )
   korrelation = df.select( Polars.pearson_corr( Polars.col('close'),
-                                  Polars.col('close_right') ))
+                                        Polars.col('close_right') ))
 
-  puts "korrelation  MSFT/AAPL :: #{year} ::  #{korrelation.rows.flatten.first}"
+  puts "correlation  MSFT/AAPL :: #{year} ::  #{korrelation.rows.flatten.first}"
 end
 
 __END__
 
 expected output
-korrelation  MSFT/AAPL :: 2016 ::  0.1477841598713981
-korrelation  MSFT/AAPL :: 2017 ::  0.9417335033503089
-korrelation  MSFT/AAPL :: 2018 ::  0.8432503069374574
-korrelation  MSFT/AAPL :: 2019 ::  0.715354955094556
-korrelation  MSFT/AAPL :: 2020 ::  0.9567542242443048
-korrelation  MSFT/AAPL :: 2021 ::  0.9145466963913612
-korrelation  MSFT/AAPL :: 2022 ::  0.6000436830730178
+correlation  MSFT/AAPL :: 2016 ::  0.1477841598713981
+correlation  MSFT/AAPL :: 2017 ::  0.9417335033503089
+correlation  MSFT/AAPL :: 2018 ::  0.8432503069374574
+correlation  MSFT/AAPL :: 2019 ::  0.715354955094556
+correlation  MSFT/AAPL :: 2020 ::  0.9567542242443048
+correlation  MSFT/AAPL :: 2021 ::  0.9145466963913612
+correlation  MSFT/AAPL :: 2022 ::  0.6000436830730178
 
 
 
