@@ -21,7 +21,7 @@ end
 #     'estimates' - Estimates
 #     'finstat'   - Financial statements
 #     'snapshot' - Summary
-contract = IB::Stock.new  symbol: 'ibm'
+contract = IB::Stock.new  symbol: 'msft'
 
 request_id = ib.send_message :RequestFundamentalData,
                 :contract =>  contract,
