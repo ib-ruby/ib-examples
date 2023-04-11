@@ -27,8 +27,8 @@ puts "+-"*40
 puts
 periods.each do | year |
 
-  msft =  IB::Symbols::Stocks.msft.eod( start: Date.new(year,1,1), duration: 360 )
-  aapl =  IB::Symbols::Stocks.aapl.eod( start: Date.new(year,1,1), duration: 360 )
+  msft =  IB::Symbols::Stocks.msft.eod( start: Date.new(year,1,1), duration: 360, polars: true )
+  aapl =  IB::Symbols::Stocks.aapl.eod( start: Date.new(year,1,1), duration: 360, polars: true )
 
   df1 =  aapl.select([ "time","close" ])
   df2 =  msft.select([ "time","close" ])
